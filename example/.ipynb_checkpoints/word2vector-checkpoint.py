@@ -1,5 +1,8 @@
 import os 
 import numpy as np
+from tensorflow import keras
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding,  Flatten, Dense
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
@@ -61,3 +64,32 @@ for line in f:
 f.close()
 
 print('Found {} word vectors.'.format(len(embeddings_index)))
+
+embedding_dim = 100
+embedding_matrix = np.zeros((max_words, embedding_dim))
+for word, i in word_index.items():
+    if i < max_words:
+        embedding_vector = embeddings_index.get(word)
+        if embedding_vector is not None:
+            embedding_matrix[i] = embedding_vector
+            
+model = Sequential([
+    Embedding(max_words, embedding_dim, input_length=maxlen),
+    Flatten(),
+    Dense(32, activation='relu'),
+    Dense(1, activation='sigmoid')
+])
+
+model.summary()
+
+model.layers[0].set_weights([embedding_matrix])
+model.layers[0].trainable = False
+
+model.compile(optimizer='rmsprop',
+             loss='binary_crossentropy',
+             metrics=['acc'])
+history = model.fit(x_train, y_train,
+                   epochs=10,
+                   batch_size=32,
+                   validation_data=(x_val,y_val))
+model.save_weights('pre_trained_glove_model.h5')
